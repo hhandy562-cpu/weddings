@@ -1,0 +1,183 @@
+{
+  "name": "Wedding Venue — Instant Lead Response + Booking",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wedding-enquiry",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "wh-enquiry",
+      "name": "1. Enquiry Form Submitted",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "notes": "Connect this to the venue's website enquiry form (or a form tool like Typeform/Tally) as its submission webhook."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "coupleName", "type": "string", "value": "={{$json[\"body\"][\"name\"] || $json[\"name\"]}}" },
+            { "id": "a2", "name": "coupleEmail", "type": "string", "value": "={{$json[\"body\"][\"email\"] || $json[\"email\"]}}" },
+            { "id": "a3", "name": "weddingDate", "type": "string", "value": "={{$json[\"body\"][\"weddingDate\"] || $json[\"weddingDate\"]}}" },
+            { "id": "a4", "name": "guestCount", "type": "string", "value": "={{$json[\"body\"][\"guests\"] || $json[\"guests\"]}}" },
+            { "id": "a5", "name": "receivedAt", "type": "string", "value": "={{$now.toISO()}}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-lead",
+      "name": "2. Format Lead Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "hello@wildflowerbarn.co.uk",
+        "toEmail": "={{$json[\"coupleEmail\"]}}",
+        "subject": "=Re: Your enquiry — Wildflower Barn, {{$json[\"weddingDate\"]}}",
+        "emailFormat": "html",
+        "html": "=<p>Hi {{$json[\"coupleName\"]}},</p><p>Thank you for thinking of us for your day on {{$json[\"weddingDate\"]}}. We'd love to show you around.</p><p><a href=\"https://wildflowerbarn.co.uk/book-viewing?lead={{$json[\"coupleEmail\"]}}\">Choose a viewing time →</a></p><p>Warmly,<br>Wildflower Barn</p>",
+        "options": {}
+      },
+      "id": "send-instant-reply",
+      "name": "3. Send Instant Reply",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [680, 220],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "Venue SMTP / Gmail"
+        }
+      },
+      "notes": "Swap for Gmail node if the venue uses Google Workspace instead of raw SMTP."
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{$json[\"coupleName\"]}}",
+            "Email": "={{$json[\"coupleEmail\"]}}",
+            "Wedding Date": "={{$json[\"weddingDate\"]}}",
+            "Guests": "={{$json[\"guestCount\"]}}",
+            "Received At": "={{$json[\"receivedAt\"]}}",
+            "Status": "Instant reply sent"
+          }
+        },
+        "options": {}
+      },
+      "id": "log-lead",
+      "name": "4. Log Lead to CRM Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [680, 380],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "notes": "This sheet is your live enquiry list to show the venue owner — swap for their existing CRM later if they have one."
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wedding-booking",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "wh-booking",
+      "name": "5. Viewing Slot Chosen",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 560],
+      "notes": "Fires when the couple clicks a viewing slot on the booking link from the instant reply email."
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "calendar": {
+          "__rl": true,
+          "value": "REPLACE_WITH_VENUE_CALENDAR_ID",
+          "mode": "id"
+        },
+        "start": "={{$json[\"body\"][\"slotStart\"]}}",
+        "end": "={{$json[\"body\"][\"slotEnd\"]}}",
+        "additionalFields": {
+          "summary": "=Viewing — {{$json[\"body\"][\"name\"]}}",
+          "description": "=Booked automatically via instant enquiry response. Wedding date: {{$json[\"body\"][\"weddingDate\"]}}",
+          "attendees": "={{$json[\"body\"][\"email\"]}}"
+        }
+      },
+      "id": "create-calendar-event",
+      "name": "6. Add Viewing to Calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [460, 560],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "REPLACE_WITH_GOOGLE_CALENDAR_CREDENTIAL_ID",
+          "name": "Venue Google Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "hello@wildflowerbarn.co.uk",
+        "toEmail": "={{$json[\"body\"][\"email\"]}}",
+        "subject": "You're booked in — Wildflower Barn viewing confirmed",
+        "emailFormat": "html",
+        "html": "=<p>Hi {{$json[\"body\"][\"name\"]}},</p><p>You're all set for your viewing at Wildflower Barn. We've added it to our calendar and look forward to meeting you.</p><p>See you soon,<br>Wildflower Barn</p>",
+        "options": {}
+      },
+      "id": "send-confirmation",
+      "name": "7. Send Booking Confirmation",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [680, 560],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "Venue SMTP / Gmail"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "1. Enquiry Form Submitted": {
+      "main": [[{ "node": "2. Format Lead Data", "type": "main", "index": 0 }]]
+    },
+    "2. Format Lead Data": {
+      "main": [[
+        { "node": "3. Send Instant Reply", "type": "main", "index": 0 },
+        { "node": "4. Log Lead to CRM Sheet", "type": "main", "index": 0 }
+      ]]
+    },
+    "5. Viewing Slot Chosen": {
+      "main": [[{ "node": "6. Add Viewing to Calendar", "type": "main", "index": 0 }]]
+    },
+    "6. Add Viewing to Calendar": {
+      "main": [[{ "node": "7. Send Booking Confirmation", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instructions": "Import into n8n, then: (1) connect an SMTP or Gmail credential and update both Send Email nodes, (2) create a Google Sheet with columns Name/Email/Wedding Date/Guests/Received At/Status and paste its ID into node 4, (3) connect a Google Calendar credential and the venue's calendar ID into node 6, (4) point the venue's website enquiry form at the 'wedding-enquiry' webhook URL, and the booking page's slot-picker at the 'wedding-booking' webhook URL. Replace 'Wildflower Barn' branding with the real venue's name and email before showing this to a client."
+  }
+}
