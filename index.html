@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instant Enquiry Response — Wildflower Barn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ivory:#F6F2E8;
+    --ivory-deep:#EFE9DA;
+    --forest:#2B3A26;
+    --forest-deep:#1D2818;
+    --ink:#20261D;
+    --brass:#A5813F;
+    --rose:#C79A90;
+    --line: rgba(32,38,29,0.14);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--ivory);
+    color:var(--ink);
+    font-family:'Work Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:1120px;
+    margin:0 auto;
+    padding:56px 32px 80px;
+  }
+  .masthead{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-bottom:1px solid var(--line);
+    padding-bottom:28px;
+    margin-bottom:48px;
+    gap:24px;
+    flex-wrap:wrap;
+  }
+  .venue-name{
+    font-family:'Cormorant Garamond', serif;
+    font-size:34px;
+    font-weight:500;
+    letter-spacing:0.01em;
+  }
+  .venue-sub{
+    font-size:13px;
+    color:var(--forest);
+    opacity:0.7;
+    margin-top:4px;
+  }
+  .masthead-note{
+    font-size:13px;
+    line-height:1.6;
+    max-width:280px;
+    color:var(--forest);
+    opacity:0.85;
+    text-align:right;
+  }
+  .headline{
+    font-family:'Cormorant Garamond', serif;
+    font-style:italic;
+    font-size:22px;
+    font-weight:400;
+    color:var(--forest-deep);
+    max-width:640px;
+    margin:0 0 44px;
+    line-height:1.5;
+  }
+  .stage{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:0;
+    border:1px solid var(--line);
+    background:#fff;
+  }
+  @media (max-width: 860px){
+    .stage{grid-template-columns: 1fr;}
+  }
+  .pane{
+    padding:40px;
+    min-height:520px;
+    display:flex;
+    flex-direction:column;
+  }
+  .pane-left{
+    border-right:1px solid var(--line);
+    background:var(--ivory);
+  }
+  .pane-right{
+    background:#fff;
+    position:relative;
+  }
+  .pane-label{
+    font-size:12px;
+    letter-spacing:0.02em;
+    color:var(--brass);
+    margin-bottom:6px;
+  }
+  .pane-title{
+    font-family:'Cormorant Garamond', serif;
+    font-size:24px;
+    margin:0 0 24px;
+  }
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--forest);
+    margin-bottom:6px;
+    margin-top:18px;
+  }
+  label:first-of-type{margin-top:0;}
+  input, select{
+    width:100%;
+    padding:11px 12px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-family:'Work Sans', sans-serif;
+    font-size:14px;
+    color:var(--ink);
+    border-radius:2px;
+  }
+  input:focus, select:focus{
+    outline:none;
+    border-color:var(--forest);
+  }
+  .row2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
+  .send-btn{
+    margin-top:28px;
+    padding:13px 22px;
+    background:var(--forest-deep);
+    color:var(--ivory);
+    border:none;
+    font-family:'Work Sans', sans-serif;
+    font-size:14px;
+    letter-spacing:0.02em;
+    cursor:pointer;
+    transition:background 0.2s ease;
+    width:fit-content;
+  }
+  .send-btn:hover{background:var(--forest);}
+  .send-btn:disabled{opacity:0.5;cursor:default;}
+
+  .idle-state{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    color:var(--forest);
+    opacity:0.45;
+    font-size:14px;
+    line-height:1.7;
+    font-style:italic;
+    font-family:'Cormorant Garamond', serif;
+    font-size:19px;
+  }
+
+  .timeline{
+    display:none;
+    flex-direction:column;
+    gap:0;
+  }
+  .timeline.active{display:flex;}
+
+  .tick{
+    display:flex;
+    gap:14px;
+    opacity:0;
+    transform:translateY(6px);
+    animation: rise 0.5s ease forwards;
+  }
+  .tick-time{
+    font-size:11px;
+    color:var(--brass);
+    width:52px;
+    flex-shrink:0;
+    padding-top:2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .tick-rail{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    flex-shrink:0;
+  }
+  .tick-dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--forest-deep);
+    margin-top:4px;
+  }
+  .tick-line{
+    width:1px;
+    flex:1;
+    background:var(--line);
+    margin-top:4px;
+  }
+  .tick-body{
+    padding-bottom:26px;
+    flex:1;
+  }
+  .tick-title{
+    font-size:14px;
+    font-weight:500;
+    margin-bottom:6px;
+  }
+  .email-card{
+    border:1px solid var(--line);
+    padding:16px 18px;
+    background:var(--ivory);
+    font-size:13px;
+    line-height:1.6;
+  }
+  .email-card .subj{
+    font-weight:600;
+    margin-bottom:8px;
+  }
+  .email-card .body-text{
+    color:var(--ink);
+    opacity:0.85;
+  }
+  .email-card .cta{
+    display:inline-block;
+    margin-top:12px;
+    padding:8px 14px;
+    background:var(--forest-deep);
+    color:var(--ivory);
+    font-size:12px;
+    text-decoration:none;
+  }
+  .slots{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-top:4px;
+  }
+  .slot{
+    border:1px solid var(--line);
+    padding:8px 12px;
+    font-size:12px;
+    background:#fff;
+    cursor:pointer;
+    transition: all 0.15s ease;
+  }
+  .slot:hover{border-color:var(--forest); background:var(--ivory);}
+  .slot.chosen{
+    background:var(--forest-deep);
+    color:var(--ivory);
+    border-color:var(--forest-deep);
+  }
+  .confirm-line{
+    font-size:13px;
+    color:var(--forest);
+    display:none;
+  }
+  .confirm-line.show{display:block;}
+
+  @keyframes rise{
+    to{opacity:1; transform:translateY(0);}
+  }
+
+  .footer-strip{
+    margin-top:36px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:12px;
+    font-size:12px;
+    color:var(--forest);
+    opacity:0.7;
+  }
+  .footer-strip .stat{
+    font-weight:600;
+    color:var(--forest-deep);
+    opacity:1;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div>
+      <div class="venue-name" id="venueName"></div>
+      <div class="venue-sub" id="venueLocation"></div>
+    </div>
+    <div class="masthead-note">This page shows what a couple experiences the moment they enquire — and what the venue sees land in their booking calendar.</div>
+  </div>
+
+  <p class="headline">Right now, an enquiry that arrives at 11pm on a Tuesday waits until someone checks their inbox. Here's what it looks like when it doesn't.</p>
+
+  <div class="stage">
+    <div class="pane pane-left">
+      <div class="pane-label">Step 1</div>
+      <h2 class="pane-title">Couple enquires</h2>
+
+      <label for="name">Name</label>
+      <input id="name" type="text">
+
+      <div class="row2">
+        <div>
+          <label for="date">Wedding date</label>
+          <input id="date" type="text">
+        </div>
+        <div>
+          <label for="guests">Guests</label>
+          <input id="guests" type="text">
+        </div>
+      </div>
+
+      <label for="email">Email</label>
+      <input id="email" type="text">
+
+      <button class="send-btn" id="sendBtn">Send enquiry</button>
+    </div>
+
+    <div class="pane pane-right">
+      <div class="pane-label">Step 2</div>
+      <h2 class="pane-title">What happens next</h2>
+
+      <div class="idle-state" id="idleState">Fill in the enquiry and send it —<br>watch the reply arrive in real time.</div>
+
+      <div class="timeline" id="timeline">
+
+        <div class="tick" style="animation-delay:0.1s">
+          <div class="tick-time">0:00</div>
+          <div class="tick-rail"><div class="tick-dot"></div><div class="tick-line"></div></div>
+          <div class="tick-body">
+            <div class="tick-title">Enquiry received</div>
+          </div>
+        </div>
+
+        <div class="tick" style="animation-delay:0.6s">
+          <div class="tick-time">0:04</div>
+          <div class="tick-rail"><div class="tick-dot"></div><div class="tick-line"></div></div>
+          <div class="tick-body">
+            <div class="tick-title">Instant reply sent to <span id="nameEcho"></span></div>
+            <div class="email-card">
+              <div class="subj">Re: Your enquiry — <span id="venueEcho"></span>, <span id="dateEcho"></span></div>
+              <div class="body-text">Thank you for thinking of us for your day. We'd love to show you around — here are our nearest available viewing times, ready to book straight away.</div>
+              <a class="cta" href="#" onclick="return false;">View available times →</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="tick" style="animation-delay:1.3s">
+          <div class="tick-time">0:11</div>
+          <div class="tick-rail"><div class="tick-dot"></div><div class="tick-line"></div></div>
+          <div class="tick-body">
+            <div class="tick-title">Couple picks a viewing slot</div>
+            <div class="slots" id="slots"></div>
+          </div>
+        </div>
+
+        <div class="tick" style="animation-delay:1.3s">
+          <div class="tick-time"></div>
+          <div class="tick-rail"><div class="tick-dot" style="background:var(--brass)"></div></div>
+          <div class="tick-body">
+            <div class="tick-title">Booked into the calendar — no one at the venue touched a thing</div>
+            <div class="confirm-line" id="confirmLine">Confirmed: viewing added, couple notified, lead logged in the venue's enquiry list.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-strip">
+    <div>Prototype for <span id="footerVenue"></span> — built on live enquiry-response infrastructure.</div>
+    <div><span class="stat">4 seconds</span> to first reply, instead of hours.</div>
+  </div>
+
+</div>
+
+<script>
+  // VENUE CONFIG — when a client replies: duplicate this file to clients/<venue-slug>/index.html and change only this block.
+  const VENUE = {
+    name: "Wildflower Barn",
+    location: "Cotswolds · weddings & private hire",
+    coupleName: "Emma & James",
+    weddingDate: "June 2027",
+    guests: "90",
+    coupleEmail: "emma.james@email.com",
+    slots: ["Sat 10:00", "Sat 14:00", "Sun 11:30"]
+  };
+
+  document.title = "Instant Enquiry Response — " + VENUE.name;
+  document.getElementById("venueName").textContent = VENUE.name;
+  document.getElementById("venueLocation").textContent = VENUE.location;
+  document.getElementById("venueEcho").textContent = VENUE.name;
+  document.getElementById("footerVenue").textContent = VENUE.name;
+  document.getElementById("nameEcho").textContent = VENUE.coupleName;
+  document.getElementById("dateEcho").textContent = VENUE.weddingDate;
+
+  const nameInput = document.getElementById("name");
+  const dateInput = document.getElementById("date");
+  const guestsInput = document.getElementById("guests");
+  const emailInput = document.getElementById("email");
+  nameInput.value = VENUE.coupleName;
+  nameInput.placeholder = VENUE.coupleName;
+  dateInput.value = VENUE.weddingDate;
+  dateInput.placeholder = VENUE.weddingDate;
+  guestsInput.value = VENUE.guests;
+  guestsInput.placeholder = VENUE.guests;
+  emailInput.value = VENUE.coupleEmail;
+  emailInput.placeholder = VENUE.coupleEmail;
+
+  const slotsEl = document.getElementById("slots");
+  VENUE.slots.forEach((label) => {
+    const slot = document.createElement("div");
+    slot.className = "slot";
+    slot.setAttribute("data-slot", "");
+    slot.textContent = label;
+    slotsEl.appendChild(slot);
+  });
+
+  const sendBtn = document.getElementById("sendBtn");
+  const idleState = document.getElementById("idleState");
+  const timeline = document.getElementById("timeline");
+  const nameEcho = document.getElementById("nameEcho");
+  const dateEcho = document.getElementById("dateEcho");
+  const confirmLine = document.getElementById("confirmLine");
+
+  sendBtn.addEventListener("click", () => {
+    const name = nameInput.value || VENUE.coupleName;
+    const date = dateInput.value || VENUE.weddingDate;
+    nameEcho.textContent = name;
+    dateEcho.textContent = date;
+
+    idleState.style.display = "none";
+    timeline.classList.remove("active");
+    void timeline.offsetWidth;
+    timeline.classList.add("active");
+
+    sendBtn.disabled = true;
+    sendBtn.textContent = "Sent";
+    setTimeout(() => { sendBtn.disabled = false; sendBtn.textContent = "Send enquiry"; }, 2200);
+
+    document.querySelectorAll("[data-slot]").forEach((el) => el.classList.remove("chosen"));
+    confirmLine.classList.remove("show");
+  });
+
+  document.querySelectorAll("[data-slot]").forEach((slot) => {
+    slot.addEventListener("click", () => {
+      document.querySelectorAll("[data-slot]").forEach((el) => el.classList.remove("chosen"));
+      slot.classList.add("chosen");
+      confirmLine.classList.add("show");
+    });
+  });
+</script>
+
+</body>
+</html>
