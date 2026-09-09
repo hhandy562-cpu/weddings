@@ -1,0 +1,157 @@
+{
+  "name": "Wedding Venue — Lead Follow-Up Nurture",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 9 * * *" }]
+        }
+      },
+      "id": "daily-trigger",
+      "name": "1. Daily at 9am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [180, 300],
+      "notes": "Runs once a day. Reads every lead in the sheet and decides who's due a nudge."
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "REPLACE_WITH_GOOGLE_SHEET_ID", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Leads", "mode": "name" },
+        "options": {}
+      },
+      "id": "read-leads",
+      "name": "2. Read All Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [380, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID", "name": "Google Sheets account" }
+      },
+      "notes": "Must be the same sheet the instant-response workflow logs leads to."
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst results = [];\n\nfor (const item of $input.all()) {\n  const row = item.json;\n  const status = (row['Status'] || '').toString();\n\n  // Skip anyone already booked\n  if (status.includes('Booked')) continue;\n\n  const receivedAt = new Date(row['Received At']);\n  if (isNaN(receivedAt.getTime())) continue;\n\n  const daysElapsed = Math.floor((now - receivedAt) / (1000 * 60 * 60 * 24));\n\n  let stage = null;\n  if (daysElapsed >= 10 && !status.includes('Day10')) stage = 'day10';\n  else if (daysElapsed >= 5 && !status.includes('Day5')) stage = 'day5';\n  else if (daysElapsed >= 2 && !status.includes('Day2')) stage = 'day2';\n\n  if (stage) {\n    results.push({ json: { ...row, stage, daysElapsed } });\n  }\n}\n\nreturn results;"
+      },
+      "id": "compute-stage",
+      "name": "3. Work Out Who's Due a Nudge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [580, 300],
+      "notes": "day2 = quick nudge, day5 = value-add nudge, day10 = last-chance nudge. Each stage only fires once per lead, tracked via the Status column."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            { "conditions": { "conditions": [{ "leftValue": "={{$json[\"stage\"]}}", "rightValue": "day2", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "outputKey": "day2" },
+            { "conditions": { "conditions": [{ "leftValue": "={{$json[\"stage\"]}}", "rightValue": "day5", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "outputKey": "day5" },
+            { "conditions": { "conditions": [{ "leftValue": "={{$json[\"stage\"]}}", "rightValue": "day10", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "outputKey": "day10" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "route-by-stage",
+      "name": "4. Route by Nudge Stage",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [780, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "hello@wildflowerbarn.co.uk",
+        "toEmail": "={{$json[\"Email\"]}}",
+        "subject": "=Still thinking about {{$json[\"Wedding Date\"]}}?",
+        "emailFormat": "html",
+        "html": "=<p>Hi {{$json[\"Name\"]}},</p><p>Just checking in — did you want to grab a viewing time for Wildflower Barn before dates around {{$json[\"Wedding Date\"]}} fill up?</p><p><a href=\"https://wildflowerbarn.co.uk/book-viewing?lead={{$json[\"Email\"]}}\">Choose a viewing time →</a></p><p>Warmly,<br>Wildflower Barn</p>",
+        "options": {}
+      },
+      "id": "send-day2",
+      "name": "5a. Send Day 2 Nudge",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1000, 140],
+      "credentials": { "smtp": { "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID", "name": "Venue SMTP / Gmail" } }
+    },
+    {
+      "parameters": {
+        "fromEmail": "hello@wildflowerbarn.co.uk",
+        "toEmail": "={{$json[\"Email\"]}}",
+        "subject": "A few things couples ask us about Wildflower Barn",
+        "emailFormat": "html",
+        "html": "=<p>Hi {{$json[\"Name\"]}},</p><p>No pressure at all — while you're deciding, here's a quick look at real weddings we've hosted and answers to the questions couples ask us most.</p><p><a href=\"https://wildflowerbarn.co.uk/real-weddings\">See real weddings →</a></p><p>Happy to answer anything directly too.</p><p>Warmly,<br>Wildflower Barn</p>",
+        "options": {}
+      },
+      "id": "send-day5",
+      "name": "5b. Send Day 5 Nudge",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1000, 300],
+      "credentials": { "smtp": { "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID", "name": "Venue SMTP / Gmail" } },
+      "notes": "Value-add touch rather than a hard sell — social proof and FAQs work better here than a repeated 'book now'."
+    },
+    {
+      "parameters": {
+        "fromEmail": "hello@wildflowerbarn.co.uk",
+        "toEmail": "={{$json[\"Email\"]}}",
+        "subject": "=Holding a little time for you, {{$json[\"Name\"]}}",
+        "emailFormat": "html",
+        "html": "=<p>Hi {{$json[\"Name\"]}},</p><p>We know planning takes time. If Wildflower Barn is still on your shortlist, let us know and we'll keep an eye on availability around {{$json[\"Wedding Date\"]}} for you.</p><p><a href=\"https://wildflowerbarn.co.uk/book-viewing?lead={{$json[\"Email\"]}}\">Book a viewing →</a></p><p>Either way, we'd love to hear how the planning's going.</p><p>Warmly,<br>Wildflower Barn</p>",
+        "options": {}
+      },
+      "id": "send-day10",
+      "name": "5c. Send Day 10 Nudge",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1000, 460],
+      "credentials": { "smtp": { "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID", "name": "Venue SMTP / Gmail" } },
+      "notes": "Last scheduled touch before the lead goes cold in this sequence — warm, not pushy."
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": { "__rl": true, "value": "REPLACE_WITH_GOOGLE_SHEET_ID", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Leads", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": ["Email"],
+          "value": {
+            "Email": "={{$json[\"Email\"]}}",
+            "Status": "={{$json[\"Status\"] + \" | \" + $json[\"stage\"].charAt(0).toUpperCase() + $json[\"stage\"].slice(1) + \" nudge sent\"}}"
+          }
+        },
+        "options": {}
+      },
+      "id": "update-status",
+      "name": "6. Log Nudge Sent",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1220, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID", "name": "Google Sheets account" }
+      },
+      "notes": "Appends the stage onto the Status column (e.g. 'Available – instant reply sent | Day2 nudge sent') so tomorrow's run doesn't send the same nudge twice."
+    }
+  ],
+  "connections": {
+    "1. Daily at 9am": { "main": [[{ "node": "2. Read All Leads", "type": "main", "index": 0 }]] },
+    "2. Read All Leads": { "main": [[{ "node": "3. Work Out Who's Due a Nudge", "type": "main", "index": 0 }]] },
+    "3. Work Out Who's Due a Nudge": { "main": [[{ "node": "4. Route by Nudge Stage", "type": "main", "index": 0 }]] },
+    "4. Route by Nudge Stage": {
+      "main": [
+        [{ "node": "5a. Send Day 2 Nudge", "type": "main", "index": 0 }],
+        [{ "node": "5b. Send Day 5 Nudge", "type": "main", "index": 0 }],
+        [{ "node": "5c. Send Day 10 Nudge", "type": "main", "index": 0 }]
+      ]
+    },
+    "5a. Send Day 2 Nudge": { "main": [[{ "node": "6. Log Nudge Sent", "type": "main", "index": 0 }]] },
+    "5b. Send Day 5 Nudge": { "main": [[{ "node": "6. Log Nudge Sent", "type": "main", "index": 0 }]] },
+    "5c. Send Day 10 Nudge": { "main": [[{ "node": "6. Log Nudge Sent", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "meta": {
+    "instructions": "Import into n8n alongside 'wedding-instant-lead-response.json' — they share the same Google Sheet. Set up: (1) SMTP/Gmail credential on all three nudge email nodes, (2) the same Google Sheet ID as the main workflow in nodes 2 and 6, (3) activate the workflow so the schedule trigger runs daily. The nudge copy for day2/day5/day10 is a starting point — tune it to the real venue's voice before it goes near an actual client."
+  }
+}
