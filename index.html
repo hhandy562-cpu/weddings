@@ -432,6 +432,8 @@
   sendBtn.addEventListener("click", () => {
     const name = nameInput.value || VENUE.coupleName;
     const date = dateInput.value || VENUE.weddingDate;
+    const guests = guestsInput.value || VENUE.guests;
+    const email = emailInput.value || VENUE.coupleEmail;
     nameEcho.textContent = name;
     dateEcho.textContent = date;
 
@@ -446,6 +448,17 @@
 
     document.querySelectorAll("[data-slot]").forEach((el) => el.classList.remove("chosen"));
     confirmLine.classList.remove("show");
+
+    fetch("https://n8n.revup.stream/webhook/wedding-enquiry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: name,
+        email: email,
+        weddingDate: date,
+        guests: guests
+      })
+    });
   });
 
   document.querySelectorAll("[data-slot]").forEach((slot) => {
