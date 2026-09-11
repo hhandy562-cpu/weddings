@@ -786,14 +786,14 @@
   const dateInput = document.getElementById("date");
   const guestsInput = document.getElementById("guests");
   const emailInput = document.getElementById("email");
-  nameInput.value = BUSINESS.customerName;
-  nameInput.placeholder = BUSINESS.customerName;
-  dateInput.value = BUSINESS.preferredDate;
-  dateInput.placeholder = BUSINESS.preferredDate;
-  guestsInput.value = BUSINESS.service;
-  guestsInput.placeholder = BUSINESS.service;
-  emailInput.value = BUSINESS.customerEmail;
-  emailInput.placeholder = BUSINESS.customerEmail;
+  nameInput.value = "";
+  nameInput.placeholder = "Your Name";
+  dateInput.value = "";
+  dateInput.placeholder = "Next Saturday";
+  guestsInput.value = "";
+  guestsInput.placeholder = "Venue Viewing";
+  emailInput.value = "";
+  emailInput.placeholder = "your@email.com";
 
   const slotsEl = document.getElementById("slots");
   BUSINESS.slots.forEach((label) => {
